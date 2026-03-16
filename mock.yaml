@@ -1,0 +1,25 @@
+seed: 42
+
+models:
+  User:
+    id: uuid
+    name: name
+    email: email
+    role:
+      enum: [admin, member, viewer]
+
+stores:
+  users:
+    model: User
+    count: 8
+
+routes:
+  - path: /users
+    method: GET
+    action: list
+    store: users
+
+  - path: /users/:id
+    method: GET
+    action: get
+    store: users

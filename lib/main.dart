@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_mock_server/flutter_mock_server.dart';
 import 'package:lifecycle_logger/lifecycle_logger.dart';
@@ -95,13 +96,51 @@ class _MockServerPlaygroundState extends State<MockServerPlayground>
   bool _isRunning = false;
   String _status = 'Server stopped';
   String _responseBody = 'No response yet';
+  final TextEditingController _externalBaseUrlController =
+      TextEditingController(text: 'http://127.0.0.1:8081');
+
+  bool get _supportsLocalServer {
+    if (kIsWeb) {
+      return false;
+    }
+    return Platform.isMacOS || Platform.isLinux || Platform.isWindows;
+  }
+
+  String get _unsupportedServerMessage {
+    if (kIsWeb) {
+      return 'Mock server is not supported on web because dart:io file and socket APIs are unavailable.';
+    }
+    return 'Mock server currently works best on desktop (macOS/Linux/Windows). '
+        'The runtime here may not support file namespace/watch operations required by flutter_mock_server.';
+  }
 
   @override
   void onDispose() {
+    _externalBaseUrlController.dispose();
     _stopServer();
   }
 
+  Uri? get _externalUsersUri {
+    final baseText = _externalBaseUrlController.text.trim();
+    final baseUri = Uri.tryParse(baseText);
+    if (baseUri == null || !baseUri.hasScheme || baseUri.host.isEmpty) {
+      return null;
+    }
+
+    final usersPath = baseUri.path.endsWith('/')
+        ? '${baseUri.path}users'
+        : '${baseUri.path}/users';
+    return baseUri.replace(path: usersPath, queryParameters: {'limit': '3'});
+  }
+
   Future<void> _startServer() async {
+    if (!_supportsLocalServer) {
+      setState(() {
+        _status = _unsupportedServerMessage;
+      });
+      return;
+    }
+
     if (_isRunning) {
       return;
     }
@@ -137,6 +176,13 @@ class _MockServerPlaygroundState extends State<MockServerPlayground>
       });
     } catch (error) {
       setState(() {
+        final errorText = '$error';
+        if (errorText.toLowerCase().contains('unsupported operation') ||
+            errorText.toLowerCase().contains('namespace')) {
+          _status =
+              'Failed to start server: $error\n$_unsupportedServerMessage';
+          return;
+        }
         _status = 'Failed to start server: $error';
       });
     }
@@ -166,23 +212,33 @@ class _MockServerPlaygroundState extends State<MockServerPlayground>
   }
 
   Future<void> _fetchUsers() async {
-    if (!_isRunning) {
+    if (!_isRunning && _supportsLocalServer) {
       setState(() {
         _responseBody = 'Start the server first.';
       });
       return;
     }
 
+    final usersUri = _supportsLocalServer
+        ? Uri.parse('http://127.0.0.1:$_serverPort/users?limit=3')
+        : _externalUsersUri;
+
+    if (usersUri == null) {
+      setState(() {
+        _responseBody =
+            'Invalid external base URL. Example: http://127.0.0.1:8081';
+      });
+      return;
+    }
+
     final client = HttpClient();
     try {
-      final request = await client.getUrl(
-        Uri.parse('http://127.0.0.1:$_serverPort/users?limit=3'),
-      );
+      final request = await client.getUrl(usersUri);
       final response = await request.close();
       final body = await utf8.decodeStream(response);
 
       setState(() {
-        _responseBody = 'HTTP ${response.statusCode}\n$body';
+        _responseBody = 'GET $usersUri\nHTTP ${response.statusCode}\n$body';
       });
     } catch (error) {
       setState(() {
@@ -215,7 +271,9 @@ class _MockServerPlaygroundState extends State<MockServerPlayground>
             runSpacing: 8,
             children: <Widget>[
               FilledButton.icon(
-                onPressed: _isRunning ? null : _startServer,
+                onPressed: (_isRunning || !_supportsLocalServer)
+                    ? null
+                    : _startServer,
                 icon: const Icon(Icons.play_arrow),
                 label: const Text('Start server'),
               ),
@@ -232,6 +290,28 @@ class _MockServerPlaygroundState extends State<MockServerPlayground>
             ],
           ),
           const SizedBox(height: 16),
+          if (!_supportsLocalServer)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(
+                    _unsupportedServerMessage,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _externalBaseUrlController,
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      labelText: 'External mock server base URL',
+                      hintText: 'http://127.0.0.1:8081',
+                    ),
+                  ),
+                ],
+              ),
+            ),
           Text(
             'Sample response',
             style: Theme.of(context).textTheme.titleMedium,
