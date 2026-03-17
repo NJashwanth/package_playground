@@ -35,6 +35,7 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   flutter_mock_server: ^1.0.0
+  http: ^1.5.0
   lifecycle_logger: ^0.0.4
 
 dev_dependencies:

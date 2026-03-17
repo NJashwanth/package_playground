@@ -1,10 +1,9 @@
-import 'dart:convert';
-import 'dart:io';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_mock_server/flutter_mock_server.dart';
+import 'package:http/http.dart' as http;
 import 'package:lifecycle_logger/lifecycle_logger.dart';
+
+import 'src/mock_server_controller.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -91,28 +90,18 @@ class _MockServerPlaygroundState extends State<MockServerPlayground>
     with LifecycleAware<MockServerPlayground> {
   static const int _serverPort = 8081;
 
-  FlutterMockServer? _server;
-  Directory? _tempDirectory;
+  final MockServerController _mockServerController =
+      createMockServerController();
   bool _isRunning = false;
   String _status = 'Server stopped';
   String _responseBody = 'No response yet';
   final TextEditingController _externalBaseUrlController =
       TextEditingController(text: 'http://127.0.0.1:8081');
 
-  bool get _supportsLocalServer {
-    if (kIsWeb) {
-      return false;
-    }
-    return Platform.isMacOS || Platform.isLinux || Platform.isWindows;
-  }
+  bool get _supportsLocalServer => _mockServerController.supportsLocalServer;
 
-  String get _unsupportedServerMessage {
-    if (kIsWeb) {
-      return 'Mock server is not supported on web because dart:io file and socket APIs are unavailable.';
-    }
-    return 'Mock server currently works best on desktop (macOS/Linux/Windows). '
-        'The runtime here may not support file namespace/watch operations required by flutter_mock_server.';
-  }
+  String get _unsupportedServerMessage =>
+      _mockServerController.unsupportedServerMessage;
 
   @override
   void onDispose() {
@@ -150,29 +139,18 @@ class _MockServerPlaygroundState extends State<MockServerPlayground>
     });
 
     try {
-      final tempDirectory = await Directory.systemTemp.createTemp(
-        'pkg-playground-',
-      );
-      final yamlFile = File('${tempDirectory.path}/mock.yaml');
-      await yamlFile.writeAsString(_sampleConfig);
-
-      final server = FlutterMockServer(
-        configPath: yamlFile.path,
-        host: '127.0.0.1',
+      final status = await _mockServerController.start(
         port: _serverPort,
+        sampleConfig: _sampleConfig,
       );
-
-      await server.start();
 
       if (!mounted) {
         return;
       }
 
       setState(() {
-        _tempDirectory = tempDirectory;
-        _server = server;
         _isRunning = true;
-        _status = 'Running on http://127.0.0.1:$_serverPort';
+        _status = status;
       });
     } catch (error) {
       setState(() {
@@ -189,23 +167,13 @@ class _MockServerPlaygroundState extends State<MockServerPlayground>
   }
 
   Future<void> _stopServer() async {
-    final server = _server;
-    if (server != null) {
-      await server.stop();
-    }
-
-    final tempDirectory = _tempDirectory;
-    if (tempDirectory != null && await tempDirectory.exists()) {
-      await tempDirectory.delete(recursive: true);
-    }
+    await _mockServerController.stop();
 
     if (!mounted) {
       return;
     }
 
     setState(() {
-      _server = null;
-      _tempDirectory = null;
       _isRunning = false;
       _status = 'Server stopped';
     });
@@ -231,11 +199,9 @@ class _MockServerPlaygroundState extends State<MockServerPlayground>
       return;
     }
 
-    final client = HttpClient();
     try {
-      final request = await client.getUrl(usersUri);
-      final response = await request.close();
-      final body = await utf8.decodeStream(response);
+      final response = await http.get(usersUri);
+      final body = response.body;
 
       setState(() {
         _responseBody = 'GET $usersUri\nHTTP ${response.statusCode}\n$body';
@@ -244,8 +210,6 @@ class _MockServerPlaygroundState extends State<MockServerPlayground>
       setState(() {
         _responseBody = 'Request failed: $error';
       });
-    } finally {
-      client.close();
     }
   }
 
@@ -298,6 +262,13 @@ class _MockServerPlaygroundState extends State<MockServerPlayground>
                 children: <Widget>[
                   Text(
                     _unsupportedServerMessage,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    kIsWeb
+                        ? 'Run a mock server outside the browser, then use its base URL below.'
+                        : 'Use a desktop target to start the local mock server from inside the app.',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                   const SizedBox(height: 8),

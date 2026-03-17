@@ -23,7 +23,14 @@ flutter pub get
 flutter run
 ```
 
+For Chrome:
+
+```bash
+flutter run -d chrome
+```
+
 ## Notes
 
-- This playground uses `dart:io` and local HTTP server behavior, so it is best for mobile/desktop testing rather than web.
+- On desktop (macOS/Linux/Windows), the app can start its own local mock server.
+- On web, the app can run in Chrome, but the local mock server cannot run inside the browser. Use an external mock server URL in the Mock Server tab instead.
 - Add your own mock routes by editing `_sampleConfig` in `lib/main.dart`.
