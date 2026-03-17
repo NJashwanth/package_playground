@@ -3,10 +3,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:package_playground/main.dart';
 
 void main() {
-  test('lifecycle store accepts and clears events', () {
-    final store = LifecycleStore.instance;
+  testWidgets('shows package playground title text', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const PackagePlaygroundApp());
 
-    store.clear();
-    expect(store.events.value, isEmpty);
+    expect(find.text('Package Playground'), findsOneWidget);
   });
 }
