@@ -44,7 +44,7 @@ class _GenkitAppState extends State<GenkitApp> {
 
     try {
       final result = await ai.generate(
-        model: googleAI.gemini('gemini-1.5-flash'),
+        model: googleAI.gemini('gemini-2.5-flash'),
         prompt: prompt,
       );
       setState(() => _response = result.text);

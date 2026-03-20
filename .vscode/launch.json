@@ -2,15 +2,16 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Flutter: Current Device",
-      "request": "launch",
-      "type": "dart"
-    },
-    {
-      "name": "Flutter: Chrome",
+      "name": "WiFi Credentials Verifier",
       "request": "launch",
       "type": "dart",
-      "deviceId": "chrome"
+      "program": "lib/main.dart"
+    },
+    {
+      "name": "Genkit Playground",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main_genkit.dart"
     }
   ]
 }
