@@ -12,6 +12,12 @@
       "request": "launch",
       "type": "dart",
       "program": "lib/main_genkit.dart"
+    },
+    {
+      "name": "Mock Server Demo",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main_mock_server_demo.dart"
     }
   ]
 }
