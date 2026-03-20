@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:package_playground/src/wifi_credentials_verifier.dart';
+import 'package:package_playground/wifi_credentials_verifier/wifi_credentials_verifier.dart';
 
 void main() {
   const service = WifiCredentialsVerifierService();
