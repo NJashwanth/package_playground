@@ -157,10 +157,10 @@ packages:
     dependency: "direct dev"
     description:
       name: feature_flag_audit
-      sha256: "20056bc1ec06e90dab655ff84ebbc8b916ddc0797ae63202e55a9871cf2c32fc"
+      sha256: dad1b83d4210a0dab044cc90ac0f08820c9f16761a36f52a52548c73f54f63f3
       url: "https://pub.dev"
     source: hosted
-    version: "1.1.1"
+    version: "1.2.0"
   file:
     dependency: transitive
     description:
