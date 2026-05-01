@@ -37,7 +37,7 @@ dependencies:
   flutter_mock_server: ^1.0.0
   http: ^1.5.0
   lifecycle_logger: ^1.0.0
-  genkit: ^0.12.0
+  genkit: ^0.13.0
   flutter_dotenv: ^6.0.0
   genkit_google_genai: ^0.2.3
   path: ^1.9.1
