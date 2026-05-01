@@ -9,6 +9,9 @@ feature_flag_audit:
     exclude:
       - build
       - .dart_tool
+      # Exclude the mock — it defines getBool/getString but never calls them
+      # with a key argument, so excluding is optional but keeps output clean.
+      - lib/mock_firebase
 
   detection:
     usage_methods:
@@ -16,16 +19,31 @@ feature_flag_audit:
       - getString
       - getInt
       - getDouble
-
     wrapper_methods:
       - boolConfigValueProvider
       - stringConfigValueProvider
       - intConfigValueProvider
       - doubleConfigValueProvider
-
     key_classes:
       - RemoteConfigKeys
 
   output:
     show_used: true
     show_summary: true
+    show_unresolved_references: true
+    show_firebase_summary: true
+    show_firebase_console_only: true
+    show_firebase_code_only: true
+
+  policy:
+    # Keys found in code but missing from Firebase Remote Config.
+    # debugMode and experimentalFeatureV2 are intentionally code-only —
+    # set to "fail" to verify the pipeline blocks on them.
+    code_only_keys: fail
+
+    # Keys in Firebase that no code references — set to "warn" so the
+    # audit surfaces them without blocking.
+    console_only_keys: warn
+
+    # String references the scanner couldn't resolve to a key value.
+    unresolved_references: warn
